@@ -2,10 +2,10 @@ import Link from "next/link";
 import {
   ArrowRight,
   Bell,
-  Building2,
   CalendarClock,
   IndianRupee,
   Leaf,
+  Navigation2,
   PackageCheck,
   Recycle,
   Truck,
@@ -52,9 +52,6 @@ export default async function DashboardPage() {
     status: string;
     material_name: string;
   }[];
-  const [partner] = (await db`
-    SELECT status, business_name FROM partner_profiles WHERE user_id = ${user.id}
-  `) as unknown as { status: string; business_name: string }[];
   const notifications = (await db`
     SELECT title, message, created_at 
     FROM notifications 
@@ -62,30 +59,24 @@ export default async function DashboardPage() {
     ORDER BY created_at DESC 
     LIMIT 3
   `) as unknown as { title: string; message: string; created_at: string }[];
-  const [orgProfile] = (await db`
-    SELECT company_name, org_type, gst_number FROM organization_profiles WHERE user_id = ${user.id}
-  `) as unknown as { company_name: string; org_type: string; gst_number: string }[];
   return (
     <div className="container page stack" style={{ gap: 28 }}>
       <div className="section-head">
         <div>
           <span className="eyebrow">Personal command center</span>
-          <h2>
-            Welcome, {user.name}
-            {orgProfile && (
-              <span style={{ fontSize: "1.2rem", color: "var(--muted)", fontWeight: "normal", marginLeft: 8 }}>
-                from {orgProfile.company_name} <span style={{textTransform: "capitalize"}}>({orgProfile.org_type})</span>
-              </span>
-            )}
-            .
-          </h2>
+          <h2>Welcome, {user.name}.</h2>
           <p className="muted">
             Track collections, value recovery and environmental progress.
           </p>
         </div>
-        <Link href="/dashboard/request-pickup" className="btn btn-primary">
-          <Truck size={18} /> New pickup
-        </Link>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Link href="/dashboard/profile" className="btn btn-secondary">
+            My Profile
+          </Link>
+          <Link href="/dashboard/request-pickup" className="btn btn-primary">
+            <Truck size={18} /> New pickup
+          </Link>
+        </div>
       </div>
       <div className="grid grid-4">
         <div className="metric">
@@ -134,6 +125,7 @@ export default async function DashboardPage() {
                     <th>Date</th>
                     <th>Value</th>
                     <th>Status</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -148,6 +140,17 @@ export default async function DashboardPage() {
                         <span className={`badge badge-${p.status}`}>
                           {statusLabel(p.status)}
                         </span>
+                      </td>
+                      <td>
+                        {["pending", "scheduled", "collected"].includes(p.status) && (
+                          <Link
+                            href={`/dashboard/track/${p.id}`}
+                            className="btn btn-ghost btn-sm"
+                            style={{ gap: 5, fontSize: "0.78rem", padding: "4px 10px" }}
+                          >
+                            <Navigation2 size={12} /> Track
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -177,21 +180,6 @@ export default async function DashboardPage() {
               style={{ marginTop: 14, width: "100%" }}
             >
               View impact <ArrowRight size={16} />
-            </Link>
-          </div>
-          <div className="glass card">
-            <span className="eyebrow">Partner profile</span>
-            <h3 style={{ marginTop: 10 }}>
-              {partner?.business_name || "Grow with Scrapix"}
-            </h3>
-            <p className="muted">
-              {partner
-                ? `Application status: ${statusLabel(partner.status)}`
-                : "Register your organization for collection, installation, distribution or recycling work."}
-            </p>
-            <Link className="btn btn-secondary btn-sm" href="/partners/apply">
-              <Building2 size={16} />
-              {partner ? "View application" : "Apply now"}
             </Link>
           </div>
         </aside>

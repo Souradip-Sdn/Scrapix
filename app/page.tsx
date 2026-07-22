@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
-  Building2,
   CheckCircle2,
   Leaf,
   ShieldCheck,
@@ -15,77 +14,138 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const materialRows = (await db`
-    SELECT id,name,rate_per_kg,co2_factor FROM materials WHERE active=1 ORDER BY id
+    SELECT id, name, rate_per_kg, co2_factor
+    FROM materials
+    WHERE active = 1
+    ORDER BY id
   `) as unknown as {
     id: number;
     name: string;
     rate_per_kg: number;
     co2_factor: number;
   }[];
+
   const materials = materialRows.map((row) => ({ ...row }));
+
   const [impact] = (await db`
-    SELECT COALESCE(SUM(recycled_kg),0)::double precision AS recycled, COALESCE(SUM(co2_saved_kg),0)::double precision AS co2 FROM impact_entries
-  `) as unknown as { recycled: number; co2: number }[];
-  const [{ count }] = await db`SELECT COUNT(*)::int AS count FROM users`;
+    SELECT
+      COALESCE(SUM(recycled_kg), 0)::double precision AS recycled,
+      COALESCE(SUM(co2_saved_kg), 0)::double precision AS co2
+    FROM impact_entries
+  `) as unknown as {
+    recycled: number;
+    co2: number;
+  }[];
+
+  const [{ count }] = (await db`
+    SELECT COUNT(*)::int AS count
+    FROM users
+  `) as unknown as {
+    count: number;
+  }[];
+
   const users = { count };
 
   return (
     <>
+      <style>{`
+        .impact-strip-position {
+          position: relative;
+          left: clamp(20px, 3vw, 48px);
+        }
+
+        @media (max-width: 1024px) {
+          .impact-strip-position {
+            left: 12px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .impact-strip-position {
+            left: 0;
+          }
+        }
+      `}</style>
+
       <section className="container hero">
         <div className="hero-copy">
-          <span className="eyebrow">Enterprise circular economy network</span>
+          <span className="eyebrow">E-waste recycling made simple</span>
+
           <h1 className="gradient-text">Turn E-Waste into Impact.</h1>
+
           <p>
-            Calculate the value of obsolete electronics, schedule verified
-            collection, connect with certified recovery partners, and measure
-            environmental impact from one platform.
+            Estimate the value of your old electronics, schedule a doorstep
+            pickup, and track your environmental contribution — all in one
+            place.
           </p>
+
           <div className="hero-actions">
-            <Link href="/dashboard/request-pickup" className="btn btn-primary">
-              Start recycling <ArrowRight size={18} />
+            <Link
+              href="/dashboard/request-pickup"
+              className="btn btn-primary"
+            >
+              Schedule a pickup
+              <ArrowRight size={18} />
             </Link>
-            <Link href="/partners/apply" className="btn btn-secondary">
-              Join partner network
+
+            <Link href="/impact" className="btn btn-secondary">
+              View your impact
             </Link>
           </div>
+
           <div
             className="row wrap"
-            style={{ marginTop: 26, color: "var(--muted)", fontSize: ".84rem" }}
+            style={{
+              marginTop: 26,
+              color: "var(--muted)",
+              fontSize: ".84rem",
+            }}
           >
             <span className="row">
-              <CheckCircle2 size={16} color="var(--primary)" /> Digital
-              traceability
+              <CheckCircle2 size={16} color="var(--primary)" />
+              Instant pricing
             </span>
+
             <span className="row">
-              <CheckCircle2 size={16} color="var(--primary)" /> Certified
-              partners
+              <CheckCircle2 size={16} color="var(--primary)" />
+              Verified pickups
             </span>
+
             <span className="row">
-              <CheckCircle2 size={16} color="var(--primary)" /> Transparent
-              pricing
+              <CheckCircle2 size={16} color="var(--primary)" />
+              Real impact tracking
             </span>
           </div>
         </div>
+
         <Estimator materials={materials} />
       </section>
 
-      <section className="container glass card impact-strip">
+      <section className="container glass card impact-strip impact-strip-position">
         <div>
           <h3 style={{ marginBottom: 6 }}>Live Environmental Impact</h3>
+
           <p className="muted" style={{ margin: 0 }}>
             Real-time metrics generated through completed Scrapix recoveries.
           </p>
         </div>
+
         <div>
           <div className="impact-number">
             {Math.round(impact.co2 + 42891).toLocaleString("en-IN")}
           </div>
+
           <span className="eyebrow">kg CO₂ saved</span>
         </div>
+
         <div>
-          <div className="impact-number" style={{ color: "var(--secondary)" }}>
+          <div
+            className="impact-number"
+            style={{ color: "var(--secondary)" }}
+          >
             {Math.round(impact.recycled + 15204).toLocaleString("en-IN")}
           </div>
+
           <span className="eyebrow">kg recycled</span>
         </div>
       </section>
@@ -93,42 +153,46 @@ export default async function HomePage() {
       <section className="container page" style={{ paddingTop: 0 }}>
         <div className="section-head">
           <div>
-            <span className="eyebrow">Connected workflow</span>
-            <h2>From discarded asset to verified recovery.</h2>
+            <span className="eyebrow">How it works</span>
+            <h2>From old device to positive impact.</h2>
           </div>
+
           <p className="muted" style={{ maxWidth: 420 }}>
-            A complete operational flow for households, enterprises, collection
-            partners, recyclers and administrators.
+            A simple, transparent workflow for customers, pickup agents, and
+            administrators.
           </p>
         </div>
+
         <div className="grid grid-4">
           {[
             {
               i: BarChart3,
-              t: "Instant valuation",
-              d: "Material-specific pricing and environmental benefit estimation.",
+              t: "Estimate value",
+              d: "Get an instant price estimate for your e-waste before scheduling.",
             },
             {
               i: Truck,
-              t: "Smart collection",
-              d: "Create pickup requests and track each operational stage.",
+              t: "Book pickup",
+              d: "Schedule a doorstep collection at your preferred date and time.",
             },
             {
               i: ShieldCheck,
-              t: "Verified recovery",
-              d: "Approved partners and auditable chain-of-custody records.",
+              t: "Verified collection",
+              d: "Our certified pickup partners collect and deliver to recyclers.",
             },
             {
               i: Leaf,
-              t: "Impact accounting",
-              d: "Recycling, CO₂ savings and tree-equivalent dashboards.",
+              t: "Track impact",
+              d: "See your CO₂ savings, kg recycled, and tree equivalents in real time.",
             },
           ].map(({ i: Icon, t, d }) => (
             <article className="card soft" key={t}>
               <div className="feature-icon">
                 <Icon size={22} />
               </div>
+
               <h3>{t}</h3>
+
               <p className="muted" style={{ margin: 0 }}>
                 {d}
               </p>
@@ -143,37 +207,47 @@ export default async function HomePage() {
           style={{ alignItems: "center" }}
         >
           <div>
-            <span className="eyebrow">Network scale</span>
-            <h2>Built for the full circular economy.</h2>
+            <span className="eyebrow">Platform at a glance</span>
+
+            <h2>Recycling for everyone.</h2>
+
             <p className="muted">
-              Scrapix supports consumer pickups, enterprise asset recovery,
-              partner onboarding, compliance services and administrative
-              operations.
+              Customers sell their e-waste, pickup partners collect it, and
+              admins keep the whole process running smoothly.
             </p>
-            <Link className="btn btn-primary" href="/market">
-              Explore services <ArrowRight size={18} />
+
+            <Link
+              className="btn btn-primary"
+              href="/dashboard/request-pickup"
+            >
+              Get started
+              <ArrowRight size={18} />
             </Link>
           </div>
+
           <div className="grid grid-2">
             <div className="metric">
-              <Building2 size={20} />
+              <Truck size={20} />
               <strong>{users.count}+</strong>
-              <span>Registered members</span>
+              <span>Registered users</span>
             </div>
+
             <div className="metric">
               <Truck size={20} />
               <strong>24/7</strong>
-              <span>Request visibility</span>
+              <span>Pickup requests</span>
             </div>
+
             <div className="metric">
               <ShieldCheck size={20} />
               <strong>100%</strong>
               <span>Traceable workflow</span>
             </div>
+
             <div className="metric">
               <Leaf size={20} />
               <strong>{Math.round(impact.recycled)} kg</strong>
-              <span>Platform recovery</span>
+              <span>Material recovered</span>
             </div>
           </div>
         </div>

@@ -46,6 +46,24 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   }
 }
 
+export async function getCurrentPartner() {
+  try {
+    const store = await cookies();
+    const token = store.get("scrapix_partner_session")?.value;
+    if (!token) return null;
+    const { payload } = await jwtVerify(token, secret);
+    if (payload.role !== "pickup_partner") return null;
+    return {
+      id: Number(payload.id),
+      name: String(payload.name),
+      email: String(payload.email),
+      role: "pickup_partner" as const,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function requireUser(roles?: UserRole[]) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/dashboard");

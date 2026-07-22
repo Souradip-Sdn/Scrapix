@@ -23,8 +23,6 @@ export default async function LoginPage() {
           <br />
           Customer: customer@scrapix.local
           <br />
-          Partner: partner@scrapix.local
-          <br />
           Password: Scrapix@123
         </div>
       </div>

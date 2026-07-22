@@ -112,6 +112,43 @@ if (process.env.NODE_ENV !== "production") globalForDb.sql = db;
       CREATE INDEX IF NOT EXISTS idx_pickups_user ON pickup_requests(user_id);
       CREATE INDEX IF NOT EXISTS idx_pickups_status ON pickup_requests(status);
       CREATE INDEX IF NOT EXISTS idx_partner_status ON partner_profiles(status);
+
+      CREATE TABLE IF NOT EXISTS pickup_partners (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        phone TEXT NOT NULL UNIQUE,
+        service_area TEXT NOT NULL,
+        vehicle_type TEXT NOT NULL DEFAULT 'two_wheeler',
+        password_hash TEXT NOT NULL,
+        is_verified BOOLEAN NOT NULL DEFAULT false,
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive','suspended')),
+        registered_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS otp_codes (
+        id SERIAL PRIMARY KEY,
+        target TEXT NOT NULL,
+        target_type TEXT NOT NULL,
+        purpose TEXT NOT NULL,
+        code_hash TEXT NOT NULL,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        used_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_otp_target ON otp_codes(target, purpose);
+    `);
+
+    // Add location columns to pickup_partners if they don't exist yet
+    await db.unsafe(`
+      ALTER TABLE pickup_partners ADD COLUMN IF NOT EXISTS landmark  TEXT NOT NULL DEFAULT '';
+      ALTER TABLE pickup_partners ADD COLUMN IF NOT EXISTS city      TEXT NOT NULL DEFAULT '';
+      ALTER TABLE pickup_partners ADD COLUMN IF NOT EXISTS state     TEXT NOT NULL DEFAULT '';
+      ALTER TABLE pickup_partners ADD COLUMN IF NOT EXISTS pincode   TEXT NOT NULL DEFAULT '';
+      ALTER TABLE pickup_partners ADD COLUMN IF NOT EXISTS latitude  DOUBLE PRECISION;
+      ALTER TABLE pickup_partners ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
     `);
 
     const [{ count: materialCount }] = await db`SELECT COUNT(*)::int AS count FROM materials`;

@@ -1,11 +1,20 @@
 "use client";
+
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarCheck, LoaderCircle } from "lucide-react";
+import Link from "next/link";
+import { CalendarCheck, LoaderCircle, MapPin } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 
 type Material = { id: number; name: string; rate_per_kg: number };
-export function PickupForm({ materials }: { materials: Material[] }) {
+interface PickupFormProps {
+  materials: Material[];
+  userAddress: string;
+  userCity: string;
+  userPincode: string;
+}
+
+export function PickupForm({ materials, userAddress, userCity, userPincode }: PickupFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -15,10 +24,11 @@ export function PickupForm({ materials }: { materials: Material[] }) {
   const selected = materials.find((m) => m.id === materialId);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
     setError("");
     setSuccess("");
     setLoading(true);
-    const fd = new FormData(e.currentTarget);
+    const fd = new FormData(form);
     const payload = { ...Object.fromEntries(fd), materialId, weightKg: weight };
     const res = await fetch("/api/pickups", {
       method: "POST",
@@ -34,7 +44,7 @@ export function PickupForm({ materials }: { materials: Material[] }) {
     setSuccess(
       `${data.requestNo} created. Estimated value ${formatCurrency(data.estimatedValue)}.`,
     );
-    e.currentTarget.reset();
+    form.reset();
     setWeight(10);
     router.refresh();
   }
@@ -44,6 +54,40 @@ export function PickupForm({ materials }: { materials: Material[] }) {
     <form onSubmit={submit} className="glass card stack">
       {error && <div className="error-box">{error}</div>}
       {success && <div className="success-box">{success}</div>}
+
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          padding: "14px 16px",
+          borderRadius: 12,
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          fontSize: "0.85rem",
+          alignItems: "flex-start",
+          marginBottom: 16,
+        }}
+      >
+        <MapPin size={18} style={{ color: "var(--primary)", flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <span style={{ fontWeight: 600, color: "var(--text)" }}>Pickup Location:</span>{" "}
+          <span className="muted">
+            {userAddress ? `${userAddress}, ${userCity} – ${userPincode}` : "No address set in profile"}
+          </span>
+          <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: "var(--muted)" }}>
+            This pickup will be collected from your registered profile address. If this is not the required pickup location, please update it from{" "}
+            <Link href="/dashboard/profile" style={{ color: "var(--primary)", textDecoration: "underline" }}>
+              Edit Profile
+            </Link>
+            .
+          </p>
+        </div>
+      </div>
+
+      <input type="hidden" name="address" value={userAddress} />
+      <input type="hidden" name="city" value={userCity} />
+      <input type="hidden" name="pincode" value={userPincode} />
+
       <div className="form-grid">
         <div className="field">
           <label>Material</label>
@@ -69,23 +113,6 @@ export function PickupForm({ materials }: { materials: Material[] }) {
             onChange={(e) => setWeight(Number(e.target.value))}
             required
           />
-        </div>
-        <div className="field full">
-          <label>Pickup address</label>
-          <textarea
-            name="address"
-            required
-            minLength={10}
-            placeholder="Building, street and landmark"
-          />
-        </div>
-        <div className="field">
-          <label>City</label>
-          <input name="city" required />
-        </div>
-        <div className="field">
-          <label>Pincode</label>
-          <input name="pincode" inputMode="numeric" pattern="\d{6}" required />
         </div>
         <div className="field">
           <label>Preferred date</label>

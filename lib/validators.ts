@@ -20,6 +20,12 @@ export const registerSchema = z.object({
   companyName: z.string().trim().max(120).optional(),
   orgType: z.enum(["private", "government"]).optional(),
   gstNumber: z.string().trim().max(30).optional(),
+  address: z.string().trim().min(3, "Address is required").max(300),
+  city: z.string().trim().min(2, "City is required").max(80),
+  state: z.string().trim().min(2, "State is required").max(80),
+  pincode: z.string().trim().regex(/^\d{6}$/, "Must be a 6-digit PIN code"),
+  latitude: z.coerce.number().optional().nullable(),
+  longitude: z.coerce.number().optional().nullable(),
 }).refine((data) => {
   if (data.customerType === "organization") {
     return !!data.companyName && !!data.orgType && !!data.gstNumber;

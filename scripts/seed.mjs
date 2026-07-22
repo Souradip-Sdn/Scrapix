@@ -59,6 +59,12 @@ async function main() {
       phone TEXT NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'customer' CHECK(role IN ('customer','partner','admin')),
+      address TEXT NOT NULL DEFAULT '',
+      city TEXT NOT NULL DEFAULT '',
+      state TEXT NOT NULL DEFAULT '',
+      pincode TEXT NOT NULL DEFAULT '',
+      latitude DOUBLE PRECISION,
+      longitude DOUBLE PRECISION,
       created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -96,6 +102,10 @@ async function main() {
       preferred_date TEXT NOT NULL,
       notes TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','scheduled','collected','completed','cancelled')),
+      partner_id INTEGER,
+      partner_lat DOUBLE PRECISION,
+      partner_lng DOUBLE PRECISION,
+      partner_last_seen TIMESTAMP WITH TIME ZONE,
       created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
       completed_at TIMESTAMP WITH TIME ZONE
     );
@@ -178,20 +188,20 @@ async function main() {
   const hash = bcrypt.hashSync("Scrapix@123", 10);
   
   const [admin] = await sql`
-    INSERT INTO users (name, email, phone, password_hash, role) 
-    VALUES ('Scrapix Admin', 'admin@scrapix.local', '9000000001', ${hash}, 'admin')
+    INSERT INTO users (name, email, phone, password_hash, role, address, city, state, pincode, latitude, longitude) 
+    VALUES ('Scrapix Admin', 'admin@scrapix.local', '9000000001', ${hash}, 'admin', 'HQ', 'Agartala', 'Tripura', '799001', 23.8315, 91.2868)
     RETURNING id
   `;
   
   const [customer] = await sql`
-    INSERT INTO users (name, email, phone, password_hash, role) 
-    VALUES ('Demo Customer', 'customer@scrapix.local', '9000000002', ${hash}, 'customer')
+    INSERT INTO users (name, email, phone, password_hash, role, address, city, state, pincode, latitude, longitude) 
+    VALUES ('Demo Customer', 'customer@scrapix.local', '9000000002', ${hash}, 'customer', 'Demo Address, Central Road', 'Agartala', 'Tripura', '799001', 23.8310, 91.2860)
     RETURNING id
   `;
   
   const [partner] = await sql`
-    INSERT INTO users (name, email, phone, password_hash, role) 
-    VALUES ('Demo Partner', 'partner@scrapix.local', '9000000003', ${hash}, 'partner')
+    INSERT INTO users (name, email, phone, password_hash, role, address, city, state, pincode, latitude, longitude) 
+    VALUES ('Demo Partner', 'partner@scrapix.local', '9000000003', ${hash}, 'partner', 'Industrial Estate, Bodhjungnagar', 'Agartala', 'Tripura', '799008', 23.8500, 91.3000)
     RETURNING id
   `;
   

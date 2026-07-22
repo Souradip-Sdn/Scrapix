@@ -15,8 +15,8 @@ export async function POST(request: Request) {
       );
     const user = await db.begin(async (sql) => {
       const [u] = await sql`
-        INSERT INTO users (name, email, phone, password_hash, role) 
-        VALUES (${body.name}, ${body.email}, ${body.phone}, ${bcrypt.hashSync(body.password, 10)}, 'customer')
+        INSERT INTO users (name, email, phone, password_hash, role, address, city, state, pincode, latitude, longitude) 
+        VALUES (${body.name}, ${body.email}, ${body.phone}, ${bcrypt.hashSync(body.password, 10)}, 'customer', ${body.address ?? ''}, ${body.city ?? ''}, ${body.state ?? ''}, ${body.pincode ?? ''}, ${body.latitude ?? null}, ${body.longitude ?? null})
         RETURNING id
       `;
       if (body.customerType === "organization") {
