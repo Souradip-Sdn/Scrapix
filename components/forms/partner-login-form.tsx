@@ -1,12 +1,13 @@
 "use client";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LoaderCircle, LogIn } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, LogIn } from "lucide-react";
 
 export function PartnerLoginForm() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -55,14 +56,31 @@ export function PartnerLoginForm() {
       </div>
       <div className="field">
         <label htmlFor="partner-password">Password</label>
-        <input
-          id="partner-password"
-          name="password"
-          type="password"
-          required
-          autoComplete="current-password"
-          placeholder="••••••••"
-        />
+        <div style={{ position: "relative" }}>
+          <input
+            id="partner-password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            required
+            autoComplete="current-password"
+            placeholder="••••••••"
+            style={{ paddingRight: 42 }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            tabIndex={-1}
+            aria-label={showPassword ? "Show password" : "Hide password"}
+            style={{
+              position: "absolute", right: 12, top: "50%",
+              transform: "translateY(-50%)",
+              background: "none", border: "none",
+              color: "var(--muted)", cursor: "pointer", padding: 0,
+            }}
+          >
+            {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
+        </div>
       </div>
       <button className="btn btn-primary" disabled={loading}>
         {loading ? <LoaderCircle className="spin" size={18} /> : <LogIn size={18} />}

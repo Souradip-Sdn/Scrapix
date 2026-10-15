@@ -132,26 +132,3 @@ export async function sendOtpEmail(to: string, otp: string, name: string) {
   });
 }
 
-// ─── Send via SMS (Fast2SMS) ───────────────────────────────────────────────────
-export async function sendOtpSms(phone: string, otp: string) {
-  const apiKey = process.env.FAST2SMS_API_KEY;
-
-  if (!apiKey) {
-    console.log(
-      `[OTP SMS - DEV] To: ${phone} | Code: ${otp} | (Set FAST2SMS_API_KEY in .env for real delivery)`,
-    );
-    return;
-  }
-
-  const url = new URL("https://www.fast2sms.com/dev/bulkV2");
-  url.searchParams.set("authorization", apiKey);
-  url.searchParams.set("variables_values", otp);
-  url.searchParams.set("route", "otp");
-  url.searchParams.set("numbers", phone);
-
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("[Fast2SMS] SMS send failed:", text);
-  }
-}

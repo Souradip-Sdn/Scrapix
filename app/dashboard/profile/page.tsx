@@ -18,6 +18,7 @@ export default async function CustomerProfilePage() {
 
   const [customer] = (await db`
     SELECT u.id, u.name, u.email, u.phone, u.address, u.city, u.state, u.pincode, u.latitude, u.longitude, u.created_at,
+           u.bank_account_number, u.bank_ifsc_code, u.bank_name,
            o.company_name, o.org_type, o.gst_number
     FROM users u
     LEFT JOIN organization_profiles o ON o.user_id = u.id
@@ -34,6 +35,9 @@ export default async function CustomerProfilePage() {
     latitude: number | null;
     longitude: number | null;
     created_at: string;
+    bank_account_number: string | null;
+    bank_ifsc_code: string | null;
+    bank_name: string | null;
     company_name: string | null;
     org_type: string | null;
     gst_number: string | null;
@@ -49,6 +53,9 @@ export default async function CustomerProfilePage() {
     pincode: customer.pincode,
     latitude: customer.latitude,
     longitude: customer.longitude,
+    bank_account_number: customer.bank_account_number || "",
+    bank_ifsc_code: customer.bank_ifsc_code || "",
+    bank_name: customer.bank_name || "",
     company_name: customer.company_name ?? undefined,
     org_type: customer.org_type ?? undefined,
     gst_number: customer.gst_number ?? undefined,

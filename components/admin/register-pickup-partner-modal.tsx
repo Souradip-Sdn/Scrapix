@@ -51,9 +51,6 @@ export function RegisterPickupPartnerModal({
     name: string;
   } | null>(null);
 
-  const [otpVia, setOtpVia] = useState<"email" | "sms" | "both">(
-    "both",
-  );
 
   const [location, setLocation] = useState<LocationState>(emptyLocation());
 
@@ -109,7 +106,6 @@ export function RegisterPickupPartnerModal({
         ...location,
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
-        otp_via: otpVia,
         password,
       };
 
@@ -442,48 +438,17 @@ export function RegisterPickupPartnerModal({
               onChange={setLocation}
             />
 
-            <div className="field">
-              <label>Send OTP Via</label>
-
-              <div
-                className="row"
-                style={{
-                  marginTop: 8,
-                  gap: 20,
-                  flexWrap: "wrap",
-                }}
-              >
-                {(["email", "sms", "both"] as const).map((value) => (
-                  <label
-                    key={value}
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      alignItems: "center",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="otp_via_radio"
-                      value={value}
-                      checked={otpVia === value}
-                      onChange={() => setOtpVia(value)}
-                    />
-
-                    <span
-                      style={{
-                        color: "var(--text)",
-                        fontSize: "0.9rem",
-                      }}
-                    >
-                      {value === "both"
-                        ? "Email + SMS"
-                        : value.toUpperCase()}
-                    </span>
-                  </label>
-                ))}
-              </div>
+            <div
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                background: "rgba(80,255,175,0.06)",
+                border: "1px solid rgba(80,255,175,0.18)",
+                fontSize: "0.85rem",
+                color: "var(--muted)",
+              }}
+            >
+              ✉️ A 6-digit verification OTP will be sent to the partner&apos;s registered email upon submission.
             </div>
 
             <button

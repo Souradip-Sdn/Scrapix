@@ -12,7 +12,9 @@
   "dependencies": {
     "@types/nodemailer": "^8.0.1",
     "bcryptjs": "3.0.3",
+    "html2canvas": "^1.4.1",
     "jose": "6.2.3",
+    "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
     "lucide-react": "1.24.0",
     "next": "16.2.10",

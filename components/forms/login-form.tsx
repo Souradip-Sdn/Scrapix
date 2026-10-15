@@ -2,13 +2,14 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { LoaderCircle, LogIn } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, LogIn } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +26,7 @@ export function LoginForm() {
     });
     const result = await response.json();
     if (!response.ok) {
-      setError(result.error || "Unable to sign in");
+      setError(result.error ?? "Unable to sign in. Please try again.");
       setLoading(false);
       return;
     }
@@ -56,14 +57,31 @@ export function LoginForm() {
       </div>
       <div className="field">
         <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          minLength={6}
-          autoComplete="current-password"
-        />
+        <div style={{ position: "relative" }}>
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            required
+            minLength={6}
+            autoComplete="current-password"
+            style={{ paddingRight: 42 }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            tabIndex={-1}
+            aria-label={showPassword ? "Show password" : "Hide password"}
+            style={{
+              position: "absolute", right: 12, top: "50%",
+              transform: "translateY(-50%)",
+              background: "none", border: "none",
+              color: "var(--muted)", cursor: "pointer", padding: 0,
+            }}
+          >
+            {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
+        </div>
       </div>
       <button className="btn btn-primary" disabled={loading}>
         {loading ? (

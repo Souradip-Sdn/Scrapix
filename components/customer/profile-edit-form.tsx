@@ -18,6 +18,9 @@ export interface CustomerProfileData {
   org_type?: string;
   company_name?: string;
   gst_number?: string;
+  bank_account_number?: string;
+  bank_ifsc_code?: string;
+  bank_name?: string;
 }
 
 export function ProfileEditForm({ user }: { user: CustomerProfileData }) {
@@ -32,6 +35,10 @@ export function ProfileEditForm({ user }: { user: CustomerProfileData }) {
   const [orgType, setOrgType] = useState(user.org_type || "private");
   const [companyName, setCompanyName] = useState(user.company_name || "");
   const [gstNumber, setGstNumber] = useState(user.gst_number || "");
+
+  const [bankAccountNumber, setBankAccountNumber] = useState(user.bank_account_number || "");
+  const [bankIfscCode, setBankIfscCode] = useState(user.bank_ifsc_code || "");
+  const [bankName, setBankName] = useState(user.bank_name || "");
 
   const [location, setLocation] = useState<LocationState>({
     service_area: user.address,
@@ -69,6 +76,9 @@ export function ProfileEditForm({ user }: { user: CustomerProfileData }) {
         pincode: location.pincode,
         latitude: location.latitude,
         longitude: location.longitude,
+        bankAccountNumber,
+        bankIfscCode,
+        bankName,
       };
 
       if (isOrganization) {
@@ -168,6 +178,44 @@ export function ProfileEditForm({ user }: { user: CustomerProfileData }) {
         value={location}
         onChange={setLocation}
       />
+
+      <div className="glass card stack" style={{ gap: 16, marginTop: 12 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: "1.05rem" }}>Bank Details</h3>
+          <p className="muted" style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
+            Add your bank account details to receive payments for sold items.
+          </p>
+        </div>
+        <div className="form-grid">
+          <div className="field full">
+            <label htmlFor="pf-bankAccount">Account Number</label>
+            <input
+              id="pf-bankAccount"
+              value={bankAccountNumber}
+              onChange={(e) => setBankAccountNumber(e.target.value)}
+              placeholder="e.g. 123456789012"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="pf-bankIfsc">IFSC Code</label>
+            <input
+              id="pf-bankIfsc"
+              value={bankIfscCode}
+              onChange={(e) => setBankIfscCode(e.target.value)}
+              placeholder="e.g. SBIN0001234"
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="pf-bankName">Bank Name</label>
+            <input
+              id="pf-bankName"
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+              placeholder="e.g. State Bank of India"
+            />
+          </div>
+        </div>
+      </div>
 
       <div style={{ marginTop: 12 }}>
         <button type="submit" className="btn btn-primary" disabled={loading}>

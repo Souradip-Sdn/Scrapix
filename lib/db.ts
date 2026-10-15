@@ -1,16 +1,48 @@
 import postgres from "postgres";
 
 const connectionString = process.env.DATABASE_URL;
+
 if (!connectionString) {
-  throw new Error("DATABASE_URL environment variable is missing.");
+  throw new Error(
+    "DATABASE_URL environment variable is missing. Add it to your .env file."
+  );
 }
 
-const globalForDb = globalThis as unknown as { sql?: ReturnType<typeof postgres> };
-const db = globalForDb.sql ?? postgres(connectionString, {
-  ssl: connectionString.includes("supabase.co") || connectionString.includes("neon.tech") ? { rejectUnauthorized: false } : false,
-});
+const globalForDb = globalThis as unknown as {
+  sql?: ReturnType<typeof postgres>;
+};
 
-if (process.env.NODE_ENV !== "production") globalForDb.sql = db;
+const isSupabase = connectionString.includes("supabase.co");
+
+const db =
+  globalForDb.sql ??
+  postgres(connectionString, {
+    // Supabase requires SSL
+    ssl: isSupabase
+      ? {
+        rejectUnauthorized: false,
+      }
+      : false,
+
+    // REQUIRED when using Supabase Transaction Pooler :6543
+    prepare: false,
+
+    // Avoid opening too many connections during Next.js development
+    max: 5,
+
+    // Don't make the page hang for ~20-30 seconds when DB is unreachable
+    connect_timeout: 10,
+
+    // Close unused development connections
+    idle_timeout: 20,
+
+    // Dispose very old connections
+    max_lifetime: 60 * 30,
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForDb.sql = db;
+}
 
 // Run migrations asynchronously
 (async () => {
@@ -151,6 +183,34 @@ if (process.env.NODE_ENV !== "production") globalForDb.sql = db;
       ALTER TABLE pickup_partners ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
     `);
 
+    // Add bank columns to users if they don't exist yet
+    await db.unsafe(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_account_number TEXT DEFAULT '';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_ifsc_code TEXT DEFAULT '';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT DEFAULT '';
+    `);
+
+    // Create ebills table if it doesn't exist
+    await db.unsafe(`
+      CREATE TABLE IF NOT EXISTS ebills (
+        id SERIAL PRIMARY KEY,
+        bill_no TEXT NOT NULL UNIQUE,
+        pickup_id INTEGER NOT NULL UNIQUE REFERENCES pickup_requests(id) ON DELETE CASCADE,
+        partner_id INTEGER NOT NULL REFERENCES pickup_partners(id),
+        customer_id INTEGER NOT NULL REFERENCES users(id),
+        material_id INTEGER NOT NULL REFERENCES materials(id),
+        actual_weight_kg DOUBLE PRECISION NOT NULL,
+        rate_per_kg DOUBLE PRECISION NOT NULL,
+        gross_amount DOUBLE PRECISION NOT NULL,
+        platform_fee DOUBLE PRECISION NOT NULL DEFAULT 0,
+        net_payable DOUBLE PRECISION NOT NULL,
+        notes TEXT NOT NULL DEFAULT '',
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_ebills_customer ON ebills(customer_id);
+      CREATE INDEX IF NOT EXISTS idx_ebills_pickup ON ebills(pickup_id);
+    `);
+
     const [{ count: materialCount }] = await db`SELECT COUNT(*)::int AS count FROM materials`;
     if (materialCount === 0) {
       const materials = [
@@ -183,40 +243,40 @@ if (process.env.NODE_ENV !== "production") globalForDb.sql = db;
     if (userCount === 0) {
       const bcrypt = await import("bcryptjs");
       const hash = bcrypt.default.hashSync("Scrapix@123", 10);
-      
+
       const [admin] = await db`
         INSERT INTO users (name, email, phone, password_hash, role) 
         VALUES ('Scrapix Admin', 'admin@scrapix.local', '9000000001', ${hash}, 'admin')
         RETURNING id
       `;
-      
+
       const [customer] = await db`
         INSERT INTO users (name, email, phone, password_hash, role) 
         VALUES ('Demo Customer', 'customer@scrapix.local', '9000000002', ${hash}, 'customer')
         RETURNING id
       `;
-      
+
       const [partner] = await db`
         INSERT INTO users (name, email, phone, password_hash, role) 
         VALUES ('Demo Partner', 'partner@scrapix.local', '9000000003', ${hash}, 'partner')
         RETURNING id
       `;
-      
+
       await db`
         INSERT INTO partner_profiles (user_id, business_name, business_type, gst_number, address, city, state, pincode, monthly_capacity_kg, service_radius_km, status, reviewed_at)
         VALUES (${partner.id}, 'GreenLoop Recycling Pvt Ltd', 'recycler', '16ABCDE1234F1Z5', 'Industrial Estate, Bodhjungnagar', 'Agartala', 'Tripura', '799008', 25000, 80, 'approved', CURRENT_TIMESTAMP)
       `;
-      
+
       const [m] = await db`
         SELECT id, rate_per_kg FROM materials WHERE name = 'Laptops & PCs'
       `;
-      
+
       const [pickup] = await db`
         INSERT INTO pickup_requests (request_no, user_id, material_id, weight_kg, estimated_value, address, city, pincode, preferred_date, notes, status, completed_at)
         VALUES (${'ECO-' + Date.now().toString().slice(-8)}, ${customer.id}, ${m.id}, 12, ${12 * m.rate_per_kg}, 'Demo Address, Central Road', 'Agartala', '799001', (CURRENT_DATE + INTERVAL '2 day')::text, 'Seed completed pickup', 'completed', CURRENT_TIMESTAMP)
         RETURNING id
       `;
-      
+
       await db`
         INSERT INTO impact_entries (user_id, pickup_id, recycled_kg, co2_saved_kg, trees_equivalent) 
         VALUES (${customer.id}, ${pickup.id}, 12, 74.4, 3.38)

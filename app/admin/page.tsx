@@ -11,6 +11,8 @@ import { formatCurrency, formatDate } from "@/lib/format";
 
 import { PickupStatusAction } from "@/components/admin-actions";
 import { PickupPartnersSection } from "@/components/admin/pickup-partners-section";
+import Link from "next/link";
+import { FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,9 @@ interface PickupRequest {
   status: string;
   user_name: string;
   material_name: string;
+  bill_id: number | null;
+  actual_weight_kg: number | null;
+  gross_amount: number | null;
 }
 
 interface PickupPartner {
@@ -90,12 +95,17 @@ export default async function AdminPage() {
       p.preferred_date,
       p.status,
       u.name AS user_name,
-      m.name AS material_name
+      m.name AS material_name,
+      e.id AS bill_id,
+      e.actual_weight_kg,
+      e.gross_amount
     FROM pickup_requests p
     JOIN users u
       ON u.id = p.user_id
     JOIN materials m
       ON m.id = p.material_id
+    LEFT JOIN ebills e
+      ON e.pickup_id = p.id
     ORDER BY p.created_at DESC
     LIMIT 20
   `) as unknown as PickupRequest[];
@@ -191,26 +201,54 @@ export default async function AdminPage() {
                 <th>Date</th>
                 <th>Value</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
 
             <tbody>
               {pickups.length > 0 ? (
                 pickups.map((pickup) => (
-                  <tr key={pickup.id}>
-                    <td>{pickup.request_no}</td>
-                    <td>{pickup.user_name}</td>
-                    <td>{pickup.material_name}</td>
-                    <td>{pickup.weight_kg} kg</td>
-                    <td>{formatDate(pickup.preferred_date)}</td>
-                    <td>
-                      {formatCurrency(pickup.estimated_value)}
+                   <tr key={pickup.id}>
+                     <td data-label="Request">{pickup.request_no}</td>
+                     <td data-label="Customer">{pickup.user_name}</td>
+                     <td data-label="Material">{pickup.material_name}</td>
+                     <td data-label="Weight">
+                      {pickup.actual_weight_kg && pickup.actual_weight_kg !== pickup.weight_kg ? (
+                        <>
+                          <span style={{ textDecoration: 'line-through', opacity: 0.6, marginRight: 6 }}>{pickup.weight_kg} kg</span>
+                          {pickup.actual_weight_kg} kg
+                        </>
+                      ) : (
+                        <>{pickup.weight_kg} kg</>
+                      )}
                     </td>
-                    <td>
-                      <PickupStatusAction
-                        id={pickup.id}
-                        current={pickup.status}
-                      />
+                     <td data-label="Date">{formatDate(pickup.preferred_date)}</td>
+                     <td data-label="Value">
+                      {pickup.gross_amount && pickup.gross_amount !== pickup.estimated_value ? (
+                        <>
+                          <span style={{ textDecoration: 'line-through', opacity: 0.6, marginRight: 6 }}>{formatCurrency(pickup.estimated_value)}</span>
+                          {formatCurrency(pickup.gross_amount)}
+                        </>
+                      ) : (
+                        <>{formatCurrency(pickup.estimated_value)}</>
+                      )}
+                    </td>
+                     <td data-label="Status">
+                       <PickupStatusAction
+                         id={pickup.id}
+                         current={pickup.status}
+                       />
+                     </td>
+                     <td data-label="">
+                      {pickup.bill_id && (
+                        <Link
+                          href={`/bill/${pickup.bill_id}`}
+                          className="btn btn-secondary btn-sm"
+                          style={{ gap: 5, fontSize: "0.76rem", padding: "4px 10px" }}
+                        >
+                          <FileText size={12} /> E-Bill
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))

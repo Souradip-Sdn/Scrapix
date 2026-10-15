@@ -12,7 +12,6 @@ export function OtpVerifyForm() {
   const partnerPhone = params.get("phone") || "";
 
   const [digits, setDigits] = useState(["", "", "", "", "", ""]);
-  const [via, setVia] = useState<"email" | "sms">("email");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
@@ -72,7 +71,7 @@ export function OtpVerifyForm() {
     const res = await fetch("/api/partner/verify-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ partnerId, code, via }),
+      body: JSON.stringify({ partnerId, code }),
     });
     const data = await res.json();
     setLoading(false);
@@ -88,7 +87,7 @@ export function OtpVerifyForm() {
     const res = await fetch("/api/partner/send-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ partnerId, via }),
+      body: JSON.stringify({ partnerId }),
     });
     const data = await res.json();
     setResending(false);
@@ -116,28 +115,13 @@ export function OtpVerifyForm() {
     <div className="stack" style={{ gap: 20 }}>
       {/* Partner info */}
       <div style={{
-        padding: "12px 16px", borderRadius: 12,
+        padding: "14px 16px", borderRadius: 12,
         background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
       }}>
-        <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--muted)" }}>Sending OTP to <strong style={{ color: "var(--text)" }}>{partnerName}</strong></p>
-        <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "var(--muted)" }}>
-          📧 {partnerEmail} &nbsp;|&nbsp; 📱 {partnerPhone}
+        <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--muted)" }}>Verification code sent to <strong style={{ color: "var(--text)" }}>{partnerName}</strong></p>
+        <p style={{ margin: "6px 0 0", fontSize: "0.85rem", color: "var(--primary)" }}>
+          📧 {partnerEmail || "Registered email address"}
         </p>
-      </div>
-
-      {/* OTP channel toggle */}
-      <div className="field">
-        <label>Verify via</label>
-        <div className="row" style={{ marginTop: 8, gap: 16 }}>
-          {(["email", "sms"] as const).map((v) => (
-            <label key={v} style={{ display: "flex", gap: 8, alignItems: "center", cursor: "pointer" }}>
-              <input type="radio" name="via" value={v} checked={via === v} onChange={() => setVia(v)} />
-              <span style={{ color: "var(--text)", fontSize: "0.9rem" }}>
-                {v === "email" ? "📧 Email" : "📱 SMS"}
-              </span>
-            </label>
-          ))}
-        </div>
       </div>
 
       {/* 6-digit input */}

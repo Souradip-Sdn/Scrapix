@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Bell,
   CalendarClock,
+  FileText,
   IndianRupee,
   Leaf,
   Navigation2,
@@ -18,12 +19,13 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const user = await requireUser();
   const [stats] = (await db`
-    SELECT COUNT(*)::int AS total, 
-           SUM(CASE WHEN status IN ('pending','scheduled','collected') THEN 1 ELSE 0 END)::int AS active, 
-           COALESCE(SUM(CASE WHEN status='completed' THEN weight_kg ELSE 0 END),0)::double precision AS recycled, 
-           COALESCE(SUM(CASE WHEN status='completed' THEN estimated_value ELSE 0 END),0)::double precision AS earned 
-    FROM pickup_requests 
-    WHERE user_id = ${user.id}
+    SELECT COUNT(p.id)::int AS total, 
+           SUM(CASE WHEN p.status IN ('pending','scheduled','collected') THEN 1 ELSE 0 END)::int AS active, 
+           COALESCE(SUM(CASE WHEN p.status='completed' THEN COALESCE(e.actual_weight_kg, p.weight_kg) ELSE 0 END),0)::double precision AS recycled, 
+           COALESCE(SUM(CASE WHEN p.status='completed' THEN COALESCE(e.gross_amount, p.estimated_value) ELSE 0 END),0)::double precision AS earned 
+    FROM pickup_requests p
+    LEFT JOIN ebills e ON e.pickup_id = p.id
+    WHERE p.user_id = ${user.id}
   `) as unknown as {
     total: number;
     active: number;
@@ -37,9 +39,14 @@ export default async function DashboardPage() {
     WHERE user_id = ${user.id}
   `) as unknown as { co2: number; trees: number }[];
   const pickups = (await db`
-    SELECT p.id, p.request_no, p.weight_kg, p.estimated_value, p.preferred_date, p.status, m.name AS material_name 
+    SELECT p.id, p.request_no, p.weight_kg, p.estimated_value, p.preferred_date, p.status,
+           m.name AS material_name,
+           e.id AS bill_id,
+           e.actual_weight_kg,
+           e.gross_amount
     FROM pickup_requests p 
-    JOIN materials m ON m.id = p.material_id 
+    JOIN materials m ON m.id = p.material_id
+    LEFT JOIN ebills e ON e.pickup_id = p.id
     WHERE p.user_id = ${user.id} 
     ORDER BY p.created_at DESC 
     LIMIT 6
@@ -51,6 +58,9 @@ export default async function DashboardPage() {
     preferred_date: string;
     status: string;
     material_name: string;
+    bill_id: number | null;
+    actual_weight_kg: number | null;
+    gross_amount: number | null;
   }[];
   const notifications = (await db`
     SELECT title, message, created_at 
@@ -61,7 +71,7 @@ export default async function DashboardPage() {
   `) as unknown as { title: string; message: string; created_at: string }[];
   return (
     <div className="container page stack" style={{ gap: 28 }}>
-      <div className="section-head">
+      <div className="section-head portal-page-header">
         <div>
           <span className="eyebrow">Personal command center</span>
           <h2>Welcome, {user.name}.</h2>
@@ -69,7 +79,7 @@ export default async function DashboardPage() {
             Track collections, value recovery and environmental progress.
           </p>
         </div>
-        <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link href="/dashboard/profile" className="btn btn-secondary">
             My Profile
           </Link>
@@ -91,7 +101,7 @@ export default async function DashboardPage() {
         </div>
         <div className="metric">
           <Recycle size={20} />
-          <strong>{stats.recycled} kg</strong>
+          <strong>{Number(stats.recycled.toFixed(2))} kg</strong>
           <span>Material recycled</span>
         </div>
         <div className="metric">
@@ -100,7 +110,7 @@ export default async function DashboardPage() {
           <span>Recovered value</span>
         </div>
       </div>
-      <div className="grid grid-3">
+      <div className="grid grid-3 dashboard-content-grid">
         <div className="glass card" style={{ gridColumn: "span 2" }}>
           <div className="row between">
             <div>
@@ -115,47 +125,63 @@ export default async function DashboardPage() {
             </Link>
           </div>
           {pickups.length ? (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Request</th>
-                    <th>Material</th>
-                    <th>Weight</th>
-                    <th>Date</th>
-                    <th>Value</th>
-                    <th>Status</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pickups.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.request_no}</td>
-                      <td>{p.material_name}</td>
-                      <td>{p.weight_kg} kg</td>
-                      <td>{formatDate(p.preferred_date)}</td>
-                      <td>{formatCurrency(p.estimated_value)}</td>
-                      <td>
-                        <span className={`badge badge-${p.status}`}>
-                          {statusLabel(p.status)}
-                        </span>
-                      </td>
-                      <td>
-                        {["pending", "scheduled", "collected"].includes(p.status) && (
-                          <Link
-                            href={`/dashboard/track/${p.id}`}
-                            className="btn btn-ghost btn-sm"
-                            style={{ gap: 5, fontSize: "0.78rem", padding: "4px 10px" }}
-                          >
-                            <Navigation2 size={12} /> Track
-                          </Link>
+            <div className="pickup-list">
+              {pickups.map((p) => (
+                <div className="pickup-card" key={p.id}>
+                  <div className="pickup-card-meta">
+                    <span className="pickup-card-id">{p.request_no}</span>
+                    <span className="pickup-card-material">{p.material_name}</span>
+                    <div className="pickup-card-details">
+                      <span>
+                        {p.actual_weight_kg && p.actual_weight_kg !== p.weight_kg ? (
+                          <>
+                            <span style={{ textDecoration: "line-through", opacity: 0.5, marginRight: 4 }}>{p.weight_kg} kg</span>
+                            {p.actual_weight_kg} kg
+                          </>
+                        ) : (
+                          <>{p.weight_kg} kg</>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </span>
+                      <span style={{ opacity: 0.35 }}>·</span>
+                      <span>
+                        {p.gross_amount && p.gross_amount !== p.estimated_value ? (
+                          <>
+                            <span style={{ textDecoration: "line-through", opacity: 0.5, marginRight: 4 }}>{formatCurrency(p.estimated_value)}</span>
+                            {formatCurrency(p.gross_amount)}
+                          </>
+                        ) : (
+                          <>{formatCurrency(p.estimated_value)}</>
+                        )}
+                      </span>
+                      <span style={{ opacity: 0.35 }}>·</span>
+                      <span>{formatDate(p.preferred_date)}</span>
+                      <span className={`badge badge-${p.status}`} style={{ padding: "3px 8px", fontSize: "0.7rem" }}>
+                        {statusLabel(p.status)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pickup-card-actions">
+                    {["pending", "scheduled", "collected"].includes(p.status) && (
+                      <Link
+                        href={`/dashboard/track/${p.id}`}
+                        className="btn btn-ghost btn-sm"
+                        style={{ gap: 5 }}
+                      >
+                        <Navigation2 size={13} /> Track
+                      </Link>
+                    )}
+                    {p.status === "completed" && p.bill_id && (
+                      <Link
+                        href={`/bill/${p.bill_id}`}
+                        className="btn btn-secondary btn-sm"
+                        style={{ gap: 5 }}
+                      >
+                        <FileText size={13} /> E-Bill
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="empty">No pickup requests yet.</div>

@@ -65,6 +65,9 @@ async function main() {
       pincode TEXT NOT NULL DEFAULT '',
       latitude DOUBLE PRECISION,
       longitude DOUBLE PRECISION,
+      bank_account_number TEXT DEFAULT '',
+      bank_ifsc_code TEXT DEFAULT '',
+      bank_name TEXT DEFAULT '',
       created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 

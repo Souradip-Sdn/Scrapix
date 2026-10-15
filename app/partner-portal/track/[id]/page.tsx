@@ -5,6 +5,7 @@ import db from "@/lib/db";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Package, Phone, Truck, User } from "lucide-react";
 import { PartnerTrackingMapWrapper } from "@/components/tracking/partner-tracking-map-wrapper";
+import { PickupStatusAdvancer } from "@/components/partner/pickup-status-advancer";
 
 const secret = new TextEncoder().encode(
   process.env.AUTH_SECRET || "development-only-secret-change-in-production",
@@ -186,7 +187,7 @@ export default async function PartnerTrackPage({ params }: PageProps) {
 
           {/* Pickup Details */}
           <div className="glass card stack" style={{ gap: 16 }}>
-            <span className="eyebrow">Item & Address Details</span>
+            <span className="eyebrow">Item &amp; Address Details</span>
             <div className="stack" style={{ gap: 12, fontSize: "0.9rem" }}>
               <div className="row" style={{ gap: 10, alignItems: "flex-start" }}>
                 <MapPin size={15} style={{ color: "var(--primary)", flexShrink: 0, marginTop: 2 }} />
@@ -218,6 +219,19 @@ export default async function PartnerTrackPage({ params }: PageProps) {
               )}
             </div>
           </div>
+
+          {/* Status Updater */}
+          <div className="glass card stack" style={{ gap: 14 }}>
+            <span className="eyebrow">Update Status</span>
+            <p className="muted" style={{ margin: 0, fontSize: "0.83rem" }}>
+              Advance the pickup status as you progress through the collection.
+            </p>
+            <PickupStatusAdvancer
+              pickupId={pickup.id}
+              initialStatus={pickup.status}
+            />
+          </div>
+
         </aside>
       </div>
     </div>

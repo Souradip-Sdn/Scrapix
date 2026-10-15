@@ -22,10 +22,8 @@ export async function POST(request: Request) {
 
     if (!partner) return NextResponse.json({ error: "Partner not found" }, { status: 404 });
 
-    // Verify OTP — try email first, then phone
-    const channel: string = via || "email";
-    const target = channel === "sms" ? partner.phone : partner.email;
-    const result = await verifyOtp(target, code, "partner_verify");
+    // Verify OTP sent to partner's email
+    const result = await verifyOtp(partner.email, code, "partner_verify");
 
     if (!result.success) {
       return NextResponse.json({ error: result.error || "Verification failed" }, { status: 400 });

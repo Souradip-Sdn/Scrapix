@@ -38,7 +38,7 @@ export async function PATCH(request: Request) {
     }
 
     // 2. Profile & Location Update
-    const { name, phone, address, city, state, pincode, latitude, longitude } = body;
+    const { name, phone, address, city, state, pincode, latitude, longitude, bankAccountNumber, bankIfscCode, bankName } = body;
     if (!name || name.trim().length < 2) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
@@ -58,7 +58,10 @@ export async function PATCH(request: Request) {
           state = ${state},
           pincode = ${pincode},
           latitude = ${latitude ?? null},
-          longitude = ${longitude ?? null}
+          longitude = ${longitude ?? null},
+          bank_account_number = ${bankAccountNumber ?? ''},
+          bank_ifsc_code = ${bankIfscCode ?? ''},
+          bank_name = ${bankName ?? ''}
       WHERE id = ${user.id}
     `;
 

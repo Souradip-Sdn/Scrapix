@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import db from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
-import { storeOtp, sendOtpEmail, sendOtpSms } from "@/lib/otp";
+import { storeOtp, sendOtpEmail } from "@/lib/otp";
 
 export async function GET() {
   const auth = await requireApiUser(["admin"]);
@@ -62,15 +62,9 @@ export async function POST(request: Request) {
       RETURNING id, name, email, phone
     `;
 
-    // Send OTP
-    const via: string = otp_via || "both";
+    // Send OTP via Email
     const emailOtp = await storeOtp(email, "email", "partner_verify");
-    const smsOtp = await storeOtp(phone, "phone", "partner_verify");
-
-    const sends: Promise<void>[] = [];
-    if (via === "email" || via === "both") sends.push(sendOtpEmail(email, emailOtp, name));
-    if (via === "sms" || via === "both") sends.push(sendOtpSms(phone, smsOtp));
-    await Promise.allSettled(sends);
+    await sendOtpEmail(email, emailOtp, name);
 
     return NextResponse.json({
       partner: { ...partner, tempPassword: String(password) },

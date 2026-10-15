@@ -65,7 +65,7 @@ export function PickupPartnersSection({ initialPartners }: { initialPartners: Pi
     const res = await fetch(`/api/admin/pickup-partners/${partner.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resendOtp: true, otp_via: "both" }),
+      body: JSON.stringify({ resendOtp: true }),
     });
     const data = await res.json();
     setResending(null);
@@ -165,23 +165,23 @@ export function PickupPartnersSection({ initialPartners }: { initialPartners: Pi
             <tbody>
               {partners.map((p) => (
                 <tr key={p.id}>
-                  <td>
+                  <td data-label="Agent">
                     <strong>{p.name}</strong>
                     {p.registered_by_name && (
                       <><br /><small className="muted">by {p.registered_by_name}</small></>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Contact">
                     {p.email}
                     <br />
                     <small className="muted">{p.phone}</small>
                   </td>
-                  <td>
+                  <td data-label="Area / Vehicle">
                     {p.service_area}
                     <br />
                     <small className="muted">{vehicleLabel[p.vehicle_type] ?? p.vehicle_type}</small>
                   </td>
-                  <td>
+                  <td data-label="Verified">
                     {p.is_verified ? (
                       <span className="badge badge-approved" style={{ gap: 5 }}>
                         <MailCheck size={12} /> Verified
@@ -192,7 +192,7 @@ export function PickupPartnersSection({ initialPartners }: { initialPartners: Pi
                       </span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <select
                       value={p.status}
                       onChange={(e) => updateStatus(p.id, e.target.value)}
@@ -203,8 +203,8 @@ export function PickupPartnersSection({ initialPartners }: { initialPartners: Pi
                       <option value="suspended">Suspended</option>
                     </select>
                   </td>
-                  <td>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <td data-label="">
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
                       {/* View + Edit */}
                       <div className="row" style={{ gap: 6 }}>
                         <button

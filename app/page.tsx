@@ -13,59 +13,39 @@ import { Estimator } from "@/components/estimator";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const materialRows = (await db`
-    SELECT id, name, rate_per_kg, co2_factor
-    FROM materials
-    WHERE active = 1
-    ORDER BY id
-  `) as unknown as {
-    id: number;
-    name: string;
-    rate_per_kg: number;
-    co2_factor: number;
-  }[];
+  // Fallback values used when the database is unreachable
+  let materials: { id: number; name: string; rate_per_kg: number; co2_factor: number }[] = [];
+  let impact = { recycled: 0, co2: 0 };
+  let users = { count: 0 };
 
-  const materials = materialRows.map((row) => ({ ...row }));
+  try {
+    const materialRows = (await db`
+      SELECT id, name, rate_per_kg, co2_factor
+      FROM materials
+      WHERE active = 1
+      ORDER BY id
+    `) as unknown as typeof materials;
+    materials = materialRows.map((row) => ({ ...row }));
 
-  const [impact] = (await db`
-    SELECT
-      COALESCE(SUM(recycled_kg), 0)::double precision AS recycled,
-      COALESCE(SUM(co2_saved_kg), 0)::double precision AS co2
-    FROM impact_entries
-  `) as unknown as {
-    recycled: number;
-    co2: number;
-  }[];
+    const [impactRow] = (await db`
+      SELECT
+        COALESCE(SUM(recycled_kg), 0)::double precision AS recycled,
+        COALESCE(SUM(co2_saved_kg), 0)::double precision AS co2
+      FROM impact_entries
+    `) as unknown as { recycled: number; co2: number }[];
+    impact = impactRow;
 
-  const [{ count }] = (await db`
-    SELECT COUNT(*)::int AS count
-    FROM users
-  `) as unknown as {
-    count: number;
-  }[];
-
-  const users = { count };
+    const [{ count }] = (await db`
+      SELECT COUNT(*)::int AS count
+      FROM users
+    `) as unknown as { count: number }[];
+    users = { count };
+  } catch (err) {
+    console.warn("HomePage: DB unavailable, using fallback data.", err);
+  }
 
   return (
     <>
-      <style>{`
-        .impact-strip-position {
-          position: relative;
-          left: clamp(20px, 3vw, 48px);
-        }
-
-        @media (max-width: 1024px) {
-          .impact-strip-position {
-            left: 12px;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .impact-strip-position {
-            left: 0;
-          }
-        }
-      `}</style>
 
       <section className="container hero">
         <div className="hero-copy">

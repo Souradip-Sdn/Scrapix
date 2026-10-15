@@ -3,28 +3,33 @@ import {
   Bell,
   LayoutDashboard,
   LogIn,
-  Recycle,
   ShieldCheck,
   Truck,
 } from "lucide-react";
 import { getCurrentPartner, getCurrentUser } from "@/lib/auth";
 import { LogoutButton } from "@/components/logout-button";
+import { NotificationsDropdown } from "@/components/notifications-dropdown";
+import { ThemeToggle } from "@/components/theme-toggle";
+import Image from "next/image";
+import logo from "@/app/assets/logo.png";
+import logoText from "@/app/assets/logo-text.png";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
   const partner = await getCurrentPartner();
-  
+
   // Decide the primary dashboard link depending on role
-  const dashboardHref = partner 
-    ? "/partner-portal" 
+  const dashboardHref = partner
+    ? "/partner-portal"
     : user?.role === "admin"
       ? "/admin"
       : "/dashboard";
   return (
     <header className="site-header">
       <div className="container header-inner">
-        <Link href="/" className="brand">
-          <Recycle size={22} /> Scrapix
+        <Link href="/" className="brand" style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
+          <Image src={logo} alt="Scrapix Logo" height={38} className="brand-logo" style={{ width: 'auto' }} />
+          <Image src={logoText} alt="Scrapix" height={35} className="brand-logo" style={{ width: 'auto' }} />
         </Link>
         <nav className="desktop-nav" aria-label="Primary navigation">
           <Link href={dashboardHref}>Dashboard</Link>
@@ -50,19 +55,12 @@ export async function SiteHeader() {
                   <ShieldCheck size={18} />
                 </Link>
               )}
-              <Link
-                className="icon-btn"
-                href={dashboardHref}
-                aria-label="Notifications"
-              >
-                <Bell size={18} />
-              </Link>
-              
+              <NotificationsDropdown />
+
               {partner ? (
                 <Link
                   href="/api/partner/logout"
                   className="btn btn-ghost btn-sm"
-                  style={{ border: "1px solid rgba(255,255,255,0.1)" }}
                 >
                   Sign out
                 </Link>
@@ -75,6 +73,7 @@ export async function SiteHeader() {
               <LogIn size={16} /> Sign in
             </Link>
           )}
+          <ThemeToggle />
         </div>
       </div>
     </header>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
-import { storeOtp, sendOtpEmail, sendOtpSms, canResendOtp } from "@/lib/otp";
+import { storeOtp, sendOtpEmail, canResendOtp } from "@/lib/otp";
 
 // ─── GET single partner ────────────────────────────────────────────────────────
 export async function GET(
@@ -91,32 +91,16 @@ export async function PATCH(
     return NextResponse.json({ message: "Status updated" });
   }
 
-  // Resend OTP
+  // Resend OTP via email
   if (body.resendOtp) {
-    const via: string = body.otp_via || "both";
-
-    const canEmail = via === "email" || via === "both"
-      ? await canResendOtp(partner.email, "partner_verify")
-      : true;
-    const canSms = via === "sms" || via === "both"
-      ? await canResendOtp(partner.phone, "partner_verify")
-      : true;
-
-    if (!canEmail || !canSms) {
+    const canEmail = await canResendOtp(partner.email, "partner_verify");
+    if (!canEmail) {
       return NextResponse.json({ error: "Please wait 60 seconds before resending" }, { status: 429 });
     }
 
-    const sends: Promise<void>[] = [];
-    if (via === "email" || via === "both") {
-      const code = await storeOtp(partner.email, "email", "partner_verify");
-      sends.push(sendOtpEmail(partner.email, code, partner.name));
-    }
-    if (via === "sms" || via === "both") {
-      const code = await storeOtp(partner.phone, "phone", "partner_verify");
-      sends.push(sendOtpSms(partner.phone, code));
-    }
-    await Promise.allSettled(sends);
-    return NextResponse.json({ message: "OTP resent successfully" });
+    const code = await storeOtp(partner.email, "email", "partner_verify");
+    await sendOtpEmail(partner.email, code, partner.name);
+    return NextResponse.json({ message: "OTP resent to email successfully" });
   }
 
   return NextResponse.json({ error: "No action specified" }, { status: 400 });

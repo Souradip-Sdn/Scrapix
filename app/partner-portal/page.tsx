@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { BackgroundLocationSharer } from "@/components/tracking/background-location-sharer";
+import { InlineStatusAdvancer } from "@/components/partner/inline-status-advancer";
 
 export const dynamic = "force-dynamic";
 
@@ -62,19 +63,26 @@ export default async function PartnerPortalPage() {
   if (!partner) redirect("/partner/login");
   if (!partner.is_verified) redirect("/partner/login");
 
-  // Fetch assigned pickups (pending/scheduled for the partner's city area)
+  // Fetch assigned pickups (pending/scheduled/collected/recently completed)
   const assignedPickups = (await db`
     SELECT p.id, p.request_no, p.weight_kg, p.estimated_value, p.preferred_date,
            p.status, p.address, p.city, p.pincode,
            u.name AS customer_name, u.phone AS customer_phone,
-           m.name AS material_name
+           m.name AS material_name,
+           e.id AS bill_id,
+           e.actual_weight_kg,
+           e.gross_amount
     FROM pickup_requests p
     JOIN users u ON u.id = p.user_id
     JOIN materials m ON m.id = p.material_id
+    LEFT JOIN ebills e ON e.pickup_id = p.id
     WHERE LOWER(p.city) = LOWER(${partner.city})
-      AND p.status IN ('pending', 'scheduled', 'collected')
+      AND (
+        p.status IN ('pending', 'scheduled', 'collected')
+        OR (p.status = 'completed' AND p.completed_at >= NOW() - INTERVAL '7 days')
+      )
     ORDER BY p.preferred_date ASC
-    LIMIT 10
+    LIMIT 15
   `) as unknown as {
     id: number;
     request_no: string;
@@ -88,6 +96,9 @@ export default async function PartnerPortalPage() {
     customer_name: string;
     customer_phone: string;
     material_name: string;
+    bill_id: number | null;
+    actual_weight_kg: number | null;
+    gross_amount: number | null;
   }[];
 
   const statusColor: Record<string, string> = {
@@ -103,7 +114,7 @@ export default async function PartnerPortalPage() {
       <BackgroundLocationSharer activePickupIds={activePickupIds} />
 
       {/* Header */}
-      <div className="section-head">
+      <div className="section-head portal-page-header">
         <div>
           <span className="eyebrow">Pickup Partner Portal</span>
           <h2>Welcome, {partner.name}.</h2>
@@ -111,13 +122,13 @@ export default async function PartnerPortalPage() {
             Your field operations dashboard. Manage pickups in your service area.
           </p>
         </div>
-        <span className="badge badge-approved" style={{ gap: 6, padding: "10px 16px" }}>
+        <span className="badge badge-approved" style={{ gap: 6, padding: "10px 16px", alignSelf: "flex-start" }}>
           <CheckCircle2 size={14} /> Verified Agent
         </span>
       </div>
 
       {/* Profile + Stats */}
-      <div className="grid grid-3" style={{ gap: 24 }}>
+      <div className="grid grid-3 partner-profile-grid" style={{ gap: 24 }}>
         {/* Profile card */}
         <div className="glass card stack" style={{ gap: 16 }}>
           <span className="eyebrow">Your Profile</span>
@@ -202,47 +213,57 @@ export default async function PartnerPortalPage() {
                   <th>Weight</th>
                   <th>Address</th>
                   <th>Date</th>
-                  <th>Status</th>
-                  <th></th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {assignedPickups.map((p) => (
-                  <tr key={p.id}>
-                    <td>
-                      <strong style={{ color: "var(--secondary)", fontFamily: "monospace", fontSize: "0.88rem" }}>
-                        {p.request_no}
-                      </strong>
-                    </td>
-                    <td>
-                      {p.customer_name}
-                      <br />
-                      <small className="muted">{p.customer_phone}</small>
-                    </td>
-                    <td>{p.material_name}</td>
-                    <td>{p.weight_kg} kg</td>
-                    <td>
-                      <span style={{ fontSize: "0.85rem" }}>{p.address}</span>
-                      <br />
-                      <small className="muted">{p.city} – {p.pincode}</small>
-                    </td>
-                    <td>{formatDate(p.preferred_date)}</td>
-                    <td>
-                      <span className={`badge ${statusColor[p.status] ?? ""}`}>
-                        {p.status}
-                      </span>
-                    </td>
-                    <td>
-                      <Link
-                        href={`/partner-portal/track/${p.id}`}
-                        className="btn btn-ghost btn-sm"
-                        style={{ gap: 5, fontSize: "0.78rem", padding: "4px 10px" }}
-                      >
-                        <MapPin size={12} /> Map
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                  {assignedPickups.map((p) => (
+                    <tr key={p.id}>
+                      <td data-label="Request">
+                        <strong style={{ color: "var(--secondary)", fontFamily: "monospace", fontSize: "0.88rem" }}>
+                          {p.request_no}
+                        </strong>
+                      </td>
+                      <td data-label="Customer">
+                        {p.customer_name}
+                        <br />
+                        <small className="muted">{p.customer_phone}</small>
+                      </td>
+                      <td data-label="Material">{p.material_name}</td>
+                      <td data-label="Weight">
+                        {p.actual_weight_kg && p.actual_weight_kg !== p.weight_kg ? (
+                          <>
+                            <span style={{ textDecoration: 'line-through', opacity: 0.6, marginRight: 6 }}>{p.weight_kg} kg</span>
+                            {p.actual_weight_kg} kg
+                          </>
+                        ) : (
+                          <>{p.weight_kg} kg</>
+                        )}
+                      </td>
+                      <td data-label="Address">
+                        <span style={{ fontSize: "0.85rem" }}>{p.address}</span>
+                        <br />
+                        <small className="muted">{p.city} – {p.pincode}</small>
+                      </td>
+                      <td data-label="Date">{formatDate(p.preferred_date)}</td>
+                      <td data-label="">
+                        <div className="stack" style={{ gap: 6, alignItems: "flex-end" }}>
+                          <InlineStatusAdvancer
+                            pickupId={p.id}
+                            initialStatus={p.status}
+                            billId={p.bill_id}
+                          />
+                          <Link
+                            href={`/partner-portal/track/${p.id}`}
+                            className="btn btn-ghost btn-sm"
+                            style={{ gap: 5, fontSize: "0.76rem", padding: "4px 10px" }}
+                          >
+                            <MapPin size={12} /> Map
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>

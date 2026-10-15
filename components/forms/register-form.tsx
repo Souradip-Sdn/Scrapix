@@ -145,7 +145,7 @@ export function RegisterForm() {
               }}
               tabIndex={-1}
             >
-              {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              {showPassword ? <Eye size={15} /> : <EyeOff size={15} />}
             </button>
           </div>
         </div>
@@ -171,7 +171,7 @@ export function RegisterForm() {
               }}
               tabIndex={-1}
             >
-              {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
+              {showConfirm ? <Eye size={15} /> : <EyeOff size={15} />}
             </button>
           </div>
         </div>
