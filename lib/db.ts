@@ -1,10 +1,10 @@
 import postgres from "postgres";
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL || "";
 
 if (!connectionString) {
-  throw new Error(
-    "DATABASE_URL environment variable is missing. Add it to your .env file."
+  console.warn(
+    "⚠️ DATABASE_URL environment variable is missing. Database operations will return empty results until DATABASE_URL is configured."
   );
 }
 
@@ -14,40 +14,59 @@ const globalForDb = globalThis as unknown as {
 
 const isSupabase = connectionString.includes("supabase.co");
 
-const db =
-  globalForDb.sql ??
-  postgres(connectionString, {
-    // Supabase requires SSL
-    ssl: isSupabase
-      ? {
-        rejectUnauthorized: false,
-      }
-      : false,
+const realDb = connectionString
+  ? (globalForDb.sql ??
+    postgres(connectionString, {
+      // Supabase requires SSL
+      ssl: isSupabase
+        ? {
+          rejectUnauthorized: false,
+        }
+        : false,
 
-    // REQUIRED when using Supabase Transaction Pooler :6543
-    prepare: false,
+      // REQUIRED when using Supabase Transaction Pooler :6543
+      prepare: false,
 
-    // Avoid opening too many connections during Next.js development
-    max: 5,
+      // Avoid opening too many connections during Next.js development
+      max: 5,
 
-    // Don't make the page hang for ~20-30 seconds when DB is unreachable
-    connect_timeout: 10,
+      // Don't make the page hang for ~20-30 seconds when DB is unreachable
+      connect_timeout: 10,
 
-    // Close unused development connections
-    idle_timeout: 20,
+      // Close unused development connections
+      idle_timeout: 20,
 
-    // Dispose very old connections
-    max_lifetime: 60 * 30,
-  });
+      // Dispose very old connections
+      max_lifetime: 60 * 30,
+    }))
+  : null;
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.sql = db;
+if (realDb && process.env.NODE_ENV !== "production") {
+  globalForDb.sql = realDb;
 }
 
-// Run migrations asynchronously
-(async () => {
-  try {
-    await db.unsafe(`
+// Fallback proxy to avoid crashing build-time module evaluation (e.g. Netlify build / static analysis) when DATABASE_URL is missing
+const fallbackHandler = {
+  get(_target: any, prop: string) {
+    if (prop === "unsafe") {
+      return async () => [];
+    }
+    return () => [];
+  },
+  apply() {
+    return Promise.resolve([]);
+  },
+};
+
+const fallbackDb = new Proxy(() => Promise.resolve([]), fallbackHandler) as unknown as ReturnType<typeof postgres>;
+
+const db = realDb ?? fallbackDb;
+
+// Run migrations asynchronously only if DATABASE_URL is provided
+if (connectionString && realDb) {
+  (async () => {
+    try {
+      await db.unsafe(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
@@ -286,5 +305,6 @@ if (process.env.NODE_ENV !== "production") {
     console.error("Database initialization failed:", e);
   }
 })();
+}
 
 export default db;
