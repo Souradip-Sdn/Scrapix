@@ -10,6 +10,7 @@ import { getCurrentPartner, getCurrentUser } from "@/lib/auth";
 import { LogoutButton } from "@/components/logout-button";
 import { NotificationsDropdown } from "@/components/notifications-dropdown";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { MobileNav } from "@/components/mobile-nav";
 import Image from "next/image";
 import logo from "@/app/assets/logo.png";
 import logoText from "@/app/assets/logo-text.png";
@@ -74,6 +75,11 @@ export async function SiteHeader() {
             </Link>
           )}
           <ThemeToggle />
+          <MobileNav
+            user={user}
+            partner={partner}
+            dashboardHref={dashboardHref}
+          />
         </div>
       </div>
     </header>

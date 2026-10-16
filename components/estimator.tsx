@@ -19,7 +19,7 @@ export function Estimator({ materials }: { materials: Material[] }) {
   const value = (material?.rate_per_kg || 0) * weight;
   const co2 = (material?.co2_factor || 0) * weight;
   return (
-    <div className="glass card stack">
+    <div className="glass card stack estimator-card">
       <div className="row">
         <div className="feature-icon" style={{ margin: 0 }}>
           <Calculator size={21} />

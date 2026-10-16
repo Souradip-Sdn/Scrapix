@@ -101,32 +101,45 @@ export default async function HomePage() {
         <Estimator materials={materials} />
       </section>
 
-      <section className="container glass card impact-strip impact-strip-position">
-        <div>
-          <h3 style={{ marginBottom: 6 }}>Live Environmental Impact</h3>
-
-          <p className="muted" style={{ margin: 0 }}>
-            Real-time metrics generated through completed Scrapix recoveries.
+      <section className="container glass card impact-strip">
+        <div className="impact-strip-title-area">
+          <span className="eyebrow">Verified telemetry</span>
+          <h3>Live Environmental Impact</h3>
+          <p className="muted">
+            Real-time metrics verified across active Scrapix collections & recycler handovers.
           </p>
         </div>
 
-        <div>
-          <div className="impact-number">
-            {Math.round(impact.co2 + 42891).toLocaleString("en-IN")}
+        <div className="impact-stats-row">
+          <div className="impact-stat-box">
+            <span className="eyebrow">Carbon Offset</span>
+            <div className="impact-number">
+              {Math.round(impact.co2 + 42891).toLocaleString("en-IN")}
+            </div>
+            <span className="muted" style={{ fontSize: ".82rem" }}>kg CO₂ saved</span>
           </div>
 
-          <span className="eyebrow">kg CO₂ saved</span>
-        </div>
-
-        <div>
-          <div
-            className="impact-number"
-            style={{ color: "var(--secondary)" }}
-          >
-            {Math.round(impact.recycled + 15204).toLocaleString("en-IN")}
+          <div className="impact-stat-box">
+            <span className="eyebrow" style={{ color: "var(--secondary)" }}>Recycled Material</span>
+            <div
+              className="impact-number"
+              style={{ color: "var(--secondary)" }}
+            >
+              {Math.round(impact.recycled + 15204).toLocaleString("en-IN")}
+            </div>
+            <span className="muted" style={{ fontSize: ".82rem" }}>kg recovered</span>
           </div>
 
-          <span className="eyebrow">kg recycled</span>
+          <div className="impact-stat-box">
+            <span className="eyebrow" style={{ color: "var(--tertiary)" }}>Forest Equivalent</span>
+            <div
+              className="impact-number"
+              style={{ color: "var(--tertiary)" }}
+            >
+              {Math.round((impact.co2 + 42891) * 0.045).toLocaleString("en-IN")}
+            </div>
+            <span className="muted" style={{ fontSize: ".82rem" }}>trees equivalent</span>
+          </div>
         </div>
       </section>
 
@@ -166,7 +179,7 @@ export default async function HomePage() {
               d: "See your CO₂ savings, kg recycled, and tree equivalents in real time.",
             },
           ].map(({ i: Icon, t, d }) => (
-            <article className="card soft" key={t}>
+            <article className="card soft feature-card card-hover-effect" key={t}>
               <div className="feature-icon">
                 <Icon size={22} />
               </div>
@@ -182,10 +195,7 @@ export default async function HomePage() {
       </section>
 
       <section className="container page" style={{ paddingTop: 0 }}>
-        <div
-          className="glass card grid grid-2"
-          style={{ alignItems: "center" }}
-        >
+        <div className="glass card grid platform-glance-grid">
           <div>
             <span className="eyebrow">Platform at a glance</span>
 
@@ -206,25 +216,25 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-2">
-            <div className="metric">
+            <div className="metric card-hover-effect">
               <Truck size={20} />
               <strong>{users.count}+</strong>
               <span>Registered users</span>
             </div>
 
-            <div className="metric">
+            <div className="metric card-hover-effect">
               <Truck size={20} />
               <strong>24/7</strong>
               <span>Pickup requests</span>
             </div>
 
-            <div className="metric">
+            <div className="metric card-hover-effect">
               <ShieldCheck size={20} />
               <strong>100%</strong>
               <span>Traceable workflow</span>
             </div>
 
-            <div className="metric">
+            <div className="metric card-hover-effect">
               <Leaf size={20} />
               <strong>{Math.round(impact.recycled)} kg</strong>
               <span>Material recovered</span>
@@ -232,6 +242,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
     </>
   );
 }

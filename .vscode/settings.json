@@ -1,0 +1,5 @@
+{
+  "terminal.integrated.env.windows": {
+    "PATH": "C:\\CODES\\.tools\\nodejs;C:\\CODES\\.tools\\git\\cmd;${env:PATH}"
+  }
+}

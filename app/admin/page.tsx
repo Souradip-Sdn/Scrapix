@@ -1,4 +1,5 @@
 import {
+  Boxes,
   PackageCheck,
   Recycle,
   Truck,
@@ -11,6 +12,8 @@ import { formatCurrency, formatDate } from "@/lib/format";
 
 import { PickupStatusAction } from "@/components/admin-actions";
 import { PickupPartnersSection } from "@/components/admin/pickup-partners-section";
+import { ItemTypesSection } from "@/components/admin/item-types-section";
+import type { MaterialItem } from "@/components/admin/item-type-modal";
 import Link from "next/link";
 import { FileText } from "lucide-react";
 
@@ -133,6 +136,21 @@ export default async function AdminPage() {
       ON u.id = pp.registered_by
     ORDER BY pp.created_at DESC
   `) as unknown as PickupPartner[];
+
+  const materials = (await db`
+    SELECT
+      m.id,
+      m.name,
+      m.category,
+      m.rate_per_kg,
+      m.co2_factor,
+      m.active,
+      COUNT(p.id)::int AS pickup_count
+    FROM materials m
+    LEFT JOIN pickup_requests p ON p.material_id = m.id
+    GROUP BY m.id
+    ORDER BY m.active DESC, m.category, m.name
+  `) as unknown as MaterialItem[];
 
   return (
     <div
@@ -270,6 +288,10 @@ export default async function AdminPage() {
 
       <PickupPartnersSection
         initialPartners={pickupPartners}
+      />
+
+      <ItemTypesSection
+        initialMaterials={materials}
       />
     </div>
   );
